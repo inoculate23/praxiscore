@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?><module codename="org.praxislive.ide.pxs">
-    <module_version install_time="1748900580002" last="true" origin="installer" specification_version="6.3.0">
-        <file crc="2799035915" name="config/Modules/org-praxislive-ide-pxs.xml"/>
-        <file crc="3199805254" name="modules/org-praxislive-ide-pxs.jar"/>
-    </module_version>
-</module>

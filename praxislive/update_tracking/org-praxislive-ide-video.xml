@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?><module codename="org.praxislive.ide.video">
-    <module_version install_time="1748900580008" last="true" origin="installer" specification_version="6.3.0">
-        <file crc="1021637461" name="config/Modules/org-praxislive-ide-video.xml"/>
-        <file crc="1994302932" name="modules/org-praxislive-ide-video.jar"/>
-    </module_version>
-</module>

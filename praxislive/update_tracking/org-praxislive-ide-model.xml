@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?><module codename="org.praxislive.ide.model">
-    <module_version install_time="1748900578711" last="true" origin="installer" specification_version="6.3.0">
-        <file crc="2881382123" name="config/Modules/org-praxislive-ide-model.xml"/>
-        <file crc="174107302" name="modules/org-praxislive-ide-model.jar"/>
-    </module_version>
-</module>
