@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?><module codename="org.praxislive.ide.pxr.gui">
+    <module_version install_time="1748900579992" last="true" origin="installer" specification_version="6.3.0">
+        <file crc="1526070668" name="config/Modules/org-praxislive-ide-pxr-gui.xml"/>
+        <file crc="2310779473" name="modules/ext/org.praxislive.ide.pxr.gui/org-praxislive/praxiscore-gui.jar"/>
+        <file crc="3521430633" name="modules/org-praxislive-ide-pxr-gui.jar"/>
+    </module_version>
+</module>

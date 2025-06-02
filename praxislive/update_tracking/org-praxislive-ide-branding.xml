@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?><module codename="org.praxislive.ide.branding">
+    <module_version install_time="1748900577863" last="true" origin="installer" specification_version="6.3.0">
+        <file crc="3717694389" name="config/Modules/org-praxislive-ide-branding.xml"/>
+        <file crc="268687951" name="core/locale/core_praxislive.jar"/>
+        <file crc="463251086" name="modules/locale/org-netbeans-core-io-ui_praxislive.jar"/>
+        <file crc="159072389" name="modules/locale/org-netbeans-core-windows_praxislive.jar"/>
+        <file crc="1922992430" name="modules/locale/org-netbeans-core_praxislive.jar"/>
+        <file crc="3708969618" name="modules/locale/org-netbeans-modules-defaults_praxislive.jar"/>
+        <file crc="979251908" name="modules/locale/org-netbeans-modules-editor_praxislive.jar"/>
+        <file crc="3015903031" name="modules/locale/org-netbeans-modules-favorites_praxislive.jar"/>
+        <file crc="3654175068" name="modules/locale/org-netbeans-modules-options-keymap_praxislive.jar"/>
+        <file crc="4075098583" name="modules/locale/org-netbeans-modules-projectui_praxislive.jar"/>
+        <file crc="1435637671" name="modules/locale/org-netbeans-modules-templates_praxislive.jar"/>
+        <file crc="2648324561" name="modules/locale/org-netbeans-spi-palette_praxislive.jar"/>
+        <file crc="608054998" name="modules/locale/org-netbeans-swing-plaf_praxislive.jar"/>
+        <file crc="3738758488" name="modules/locale/org-openide-actions_praxislive.jar"/>
+        <file crc="2167808885" name="modules/locale/org-openide-dialogs_praxislive.jar"/>
+        <file crc="1234530997" name="modules/locale/org-openide-loaders_praxislive.jar"/>
+        <file crc="3458318326" name="modules/locale/org-openide-nodes_praxislive.jar"/>
+        <file crc="2402464197" name="modules/org-praxislive-ide-branding.jar"/>
+    </module_version>
+</module>

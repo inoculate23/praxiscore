@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?><module codename="org.praxislive.ide.core.embedder">
+    <module_version install_time="1748900577944" last="true" origin="installer" specification_version="6.3.0">
+        <file crc="3418837651" name="config/Modules/org-praxislive-ide-core-embedder.xml"/>
+        <file crc="2559717441" name="modules/ext/org.praxislive.ide.core.embedder/com-amazon-ion/ion-java.jar"/>
+        <file crc="3161104019" name="modules/ext/org.praxislive.ide.core.embedder/io-netty/netty-buffer.jar"/>
+        <file crc="1696121778" name="modules/ext/org.praxislive.ide.core.embedder/io-netty/netty-codec-http.jar"/>
+        <file crc="3454841836" name="modules/ext/org.praxislive.ide.core.embedder/io-netty/netty-codec.jar"/>
+        <file crc="129284037" name="modules/ext/org.praxislive.ide.core.embedder/io-netty/netty-common.jar"/>
+        <file crc="2983059819" name="modules/ext/org.praxislive.ide.core.embedder/io-netty/netty-handler.jar"/>
+        <file crc="499744614" name="modules/ext/org.praxislive.ide.core.embedder/io-netty/netty-resolver.jar"/>
+        <file crc="3887374205" name="modules/ext/org.praxislive.ide.core.embedder/io-netty/netty-transport-native-unix-common.jar"/>
+        <file crc="4188043585" name="modules/ext/org.praxislive.ide.core.embedder/io-netty/netty-transport.jar"/>
+        <file crc="2614137403" name="modules/ext/org.praxislive.ide.core.embedder/org-praxislive/praxiscore-api.jar"/>
+        <file crc="1026800583" name="modules/ext/org.praxislive.ide.core.embedder/org-praxislive/praxiscore-base.jar"/>
+        <file crc="1996492600" name="modules/ext/org.praxislive.ide.core.embedder/org-praxislive/praxiscore-hub-net.jar"/>
+        <file crc="3278959720" name="modules/ext/org.praxislive.ide.core.embedder/org-praxislive/praxiscore-hub.jar"/>
+        <file crc="623166748" name="modules/ext/org.praxislive.ide.core.embedder/org-praxislive/praxiscore-project.jar"/>
+        <file crc="2973769527" name="modules/ext/org.praxislive.ide.core.embedder/org-praxislive/praxiscore-script.jar"/>
+        <file crc="735987934" name="modules/org-praxislive-ide-core-embedder.jar"/>
+    </module_version>
+</module>

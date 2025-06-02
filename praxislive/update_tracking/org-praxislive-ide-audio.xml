@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?><module codename="org.praxislive.ide.audio">
+    <module_version install_time="1748900578270" last="true" origin="installer" specification_version="6.3.0">
+        <file crc="2975364449" name="config/Modules/org-praxislive-ide-audio.xml"/>
+        <file crc="671058862" name="modules/org-praxislive-ide-audio.jar"/>
+    </module_version>
+</module>

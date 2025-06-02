@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?><module codename="org.praxislive.ide.pxr.graph">
+    <module_version install_time="1748900579962" last="true" origin="installer" specification_version="6.3.0">
+        <file crc="1436114480" name="config/Modules/org-praxislive-ide-pxr-graph.xml"/>
+        <file crc="3081369356" name="modules/org-praxislive-ide-pxr-graph.jar"/>
+    </module_version>
+</module>
