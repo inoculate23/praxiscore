@@ -21,6 +21,12 @@ class PraxisLiveWeb {
         this.setupDragAndDrop();
         this.log('PraxisLIVE Web IDE ready', 'success');
         
+        // Add a demo node for testing
+        setTimeout(() => {
+            const testNode = this.addNodeAt('audio:oscillator', 200, 150);
+            this.log('Added demo oscillator node - try clicking on it!', 'info');
+        }, 500);
+        
         // Auto-connect to PraxisCORE on startup
         setTimeout(() => {
             this.connectToPraxisCore();
@@ -159,8 +165,20 @@ class PraxisLiveWeb {
     
     setupNodeEvents(nodeElement) {
         const header = nodeElement.querySelector('.node-header');
+        const body = nodeElement.querySelector('.node-body');
         
-        // Node selection and dragging
+        // Node selection - can click anywhere on the node
+        const handleNodeClick = (e) => {
+            // Don't select if clicking on a port
+            if (!e.target.classList.contains('node-port')) {
+                e.stopPropagation();
+                this.selectNode(nodeElement.id);
+            }
+        };
+        
+        nodeElement.addEventListener('click', handleNodeClick);
+        
+        // Node dragging - only from header
         header.addEventListener('mousedown', (e) => {
             e.stopPropagation();
             this.selectNode(nodeElement.id);
@@ -174,6 +192,15 @@ class PraxisLiveWeb {
                 e.stopPropagation();
                 this.startConnection(e, nodeElement.id, port.dataset.port);
             });
+            
+            // Add hover effects for ports
+            port.addEventListener('mouseenter', () => {
+                port.style.transform = 'scale(1.2)';
+            });
+            
+            port.addEventListener('mouseleave', () => {
+                port.style.transform = 'scale(1)';
+            });
         });
         
         // Node double-click for editing
@@ -184,9 +211,12 @@ class PraxisLiveWeb {
     }
     
     selectNode(nodeId) {
+        console.log('selectNode called with:', nodeId);
+        
         // Remove previous selection
         if (this.selectedNode) {
             this.selectedNode.element.classList.remove('selected');
+            console.log('Removed selection from:', this.selectedNode.id);
         }
         
         // Select new node
@@ -195,31 +225,75 @@ class PraxisLiveWeb {
             this.selectedNode = node;
             node.element.classList.add('selected');
             this.updatePropertiesPanel(node);
-            this.log(`Selected ${node.type}`, 'info');
+            this.log(`Selected ${node.type} (${nodeId})`, 'info');
+            console.log('Selected node:', node);
+        } else {
+            console.error('Node not found:', nodeId);
+            this.log(`Node ${nodeId} not found`, 'error');
         }
     }
     
     updatePropertiesPanel(node) {
         const content = document.getElementById('propertiesContent');
-        let html = `<div class="property-group">
-            <label class="property-label">Node ID</label>
-            <input class="property-input" value="${node.id}" readonly>
-        </div>
-        <div class="property-group">
-            <label class="property-label">Type</label>
-            <input class="property-input" value="${node.type}" readonly>
-        </div>`;
+        
+        if (!content) {
+            console.error('Properties content element not found');
+            return;
+        }
+        
+        let html = `
+            <div class="property-group">
+                <h3 style="color: #4a9eff; margin-bottom: 10px;">Selected Node</h3>
+            </div>
+            <div class="property-group">
+                <label class="property-label">Node ID</label>
+                <input class="property-input" value="${node.id}" readonly>
+            </div>
+            <div class="property-group">
+                <label class="property-label">Type</label>
+                <input class="property-input" value="${node.type}" readonly>
+            </div>
+            <div class="property-group">
+                <label class="property-label">Category</label>
+                <input class="property-input" value="${node.category}" readonly>
+            </div>`;
         
         // Add editable properties
-        Object.entries(node.properties).forEach(([key, value]) => {
+        if (Object.keys(node.properties).length > 0) {
             html += `<div class="property-group">
-                <label class="property-label">${key.charAt(0).toUpperCase() + key.slice(1)}</label>
-                <input class="property-input" value="${value}" 
-                       onchange="praxisLive.updateNodeProperty('${node.id}', '${key}', this.value)">
+                <h4 style="color: #ffd700; margin: 15px 0 10px 0;">Properties</h4>
             </div>`;
-        });
+            
+            Object.entries(node.properties).forEach(([key, value]) => {
+                html += `<div class="property-group">
+                    <label class="property-label">${key.charAt(0).toUpperCase() + key.slice(1)}</label>
+                    <input class="property-input" value="${value}" 
+                           onchange="praxisLive.updateNodeProperty('${node.id}', '${key}', this.value)"
+                           placeholder="Enter ${key}...">
+                </div>`;
+            });
+        } else {
+            html += `<div class="property-group">
+                <em style="color: #666; font-size: 12px;">No editable properties</em>
+            </div>`;
+        }
+        
+        // Add position info
+        html += `
+            <div class="property-group">
+                <h4 style="color: #ff6b4a; margin: 15px 0 10px 0;">Position</h4>
+            </div>
+            <div class="property-group">
+                <label class="property-label">X</label>
+                <input class="property-input" value="${Math.round(node.x)}" readonly>
+            </div>
+            <div class="property-group">
+                <label class="property-label">Y</label>
+                <input class="property-input" value="${Math.round(node.y)}" readonly>
+            </div>`;
         
         content.innerHTML = html;
+        this.log(`Properties panel updated for ${node.type}`, 'info');
     }
     
     updateNodeProperty(nodeId, property, value) {
@@ -671,6 +745,23 @@ function stopProject() {
 }
 function connectToPraxisCore() { 
     if (praxisLive) praxisLive.connectToPraxisCore(); 
+}
+
+function testNodeSelection() {
+    if (praxisLive) {
+        // Create a test node if none exist
+        if (praxisLive.nodes.size === 0) {
+            const testNode = praxisLive.addNodeAt('audio:oscillator', 300, 200);
+            praxisLive.log('Created test node for selection testing', 'info');
+        }
+        
+        // Select the first node
+        const firstNode = Array.from(praxisLive.nodes.values())[0];
+        if (firstNode) {
+            praxisLive.selectNode(firstNode.id);
+            praxisLive.log('Test: Selected first node', 'success');
+        }
+    }
 }
 
 // Context menu functions
