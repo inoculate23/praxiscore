@@ -118,14 +118,16 @@ cd /opt/praxiscore && ./bin/praxis --network all --port 8080
 
 ## Monitoring and Management
 
-### Health Checks
+### Container Health Monitoring
 
-The Docker container includes a health check endpoint. Container status can be monitored via:
+Since PraxisCORE uses a custom protocol (not HTTP), traditional health checks aren't applicable. Monitor container status via:
 
 ```bash
 docker ps --filter name=praxiscore-runtime
-docker inspect praxiscore-runtime --format='{{.State.Health.Status}}'
+docker logs --tail 10 praxiscore-runtime
 ```
+
+Look for "Listening at : [port]" in the logs to confirm successful startup.
 
 ### Application Logs
 

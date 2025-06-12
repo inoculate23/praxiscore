@@ -29,9 +29,7 @@ EXPOSE 8080
 ENV PRAXIS_HOME=/opt/praxiscore
 ENV PRAXIS_USER_DIR=/opt/praxiscore/data
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+# Note: PraxisCORE uses custom protocol, not HTTP, so no health check endpoint
 
 # Default command - run interactive mode on configurable port
 CMD ["sh", "-c", "./bin/praxis --network all --port ${PORT:-8080} --interactive"]
