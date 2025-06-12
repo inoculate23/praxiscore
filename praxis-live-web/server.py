@@ -77,33 +77,37 @@ class PraxisLiveWebHandler(http.server.SimpleHTTPRequestHandler):
     
     def check_praxiscore_status(self):
         """Check if PraxisCORE is running"""
-        try:
-            # Try to connect to PraxisCORE port
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(1)
-            result = sock.connect_ex(('localhost', 8080))
-            sock.close()
-            
-            if result == 0:
-                return {
-                    "status": "success", 
-                    "connected": True, 
-                    "message": "PraxisCORE is running",
-                    "version": "6.3.0-SNAPSHOT",
-                    "port": 8080
-                }
-            else:
-                return {
-                    "status": "success", 
-                    "connected": False, 
-                    "message": "PraxisCORE is not running"
-                }
-        except Exception as e:
-            return {
-                "status": "error", 
-                "connected": False, 
-                "message": f"Connection check failed: {str(e)}"
-            }
+        # Try multiple connection methods (Docker network and localhost)
+        hosts_to_try = [
+            ('praxiscore', 8080),  # Docker service name
+            ('localhost', 8080),   # Local development
+            ('127.0.0.1', 8080)    # Fallback
+        ]
+        
+        for host, port in hosts_to_try:
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(1)
+                result = sock.connect_ex((host, port))
+                sock.close()
+                
+                if result == 0:
+                    return {
+                        "status": "success", 
+                        "connected": True, 
+                        "message": f"PraxisCORE is running on {host}:{port}",
+                        "version": "6.3.0-SNAPSHOT",
+                        "host": host,
+                        "port": port
+                    }
+            except Exception as e:
+                continue
+        
+        return {
+            "status": "success", 
+            "connected": False, 
+            "message": "PraxisCORE is not running on any known address"
+        }
     
     def connect_to_praxiscore(self):
         """Establish connection to PraxisCORE"""

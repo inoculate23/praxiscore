@@ -20,6 +20,11 @@ class PraxisLiveWeb {
         this.setupEventListeners();
         this.setupDragAndDrop();
         this.log('PraxisLIVE Web IDE ready', 'success');
+        
+        // Auto-connect to PraxisCORE on startup
+        setTimeout(() => {
+            this.connectToPraxisCore();
+        }, 1000);
     }
     
     setupEventListeners() {
@@ -595,17 +600,19 @@ class PraxisLiveWeb {
         try {
             this.log('Connecting to PraxisCORE...', 'info');
             
-            // Check if PraxisCORE is running
-            const response = await fetch('http://localhost:9000/api/status');
+            // Check if PraxisCORE is running (use local API endpoint)
+            const response = await fetch('/api/status');
             const data = await response.json();
             
             if (data.connected) {
                 statusIndicator.classList.add('connected');
-                this.log('Connected to PraxisCORE', 'success');
+                this.log(`Connected to PraxisCORE at ${data.host}:${data.port}`, 'success');
             } else {
-                this.log('PraxisCORE not running', 'warning');
+                statusIndicator.classList.remove('connected');
+                this.log('PraxisCORE not running - ' + data.message, 'warning');
             }
         } catch (error) {
+            statusIndicator.classList.remove('connected');
             this.log('Failed to connect: ' + error.message, 'error');
         }
     }
