@@ -26,18 +26,18 @@ class PraxisLiveWeb {
         const canvas = document.getElementById('nodeCanvas');
         
         // Canvas events
-        canvas.addEventListener('mousedown', this.onCanvasMouseDown.bind(this));
-        canvas.addEventListener('mousemove', this.onCanvasMouseMove.bind(this));
-        canvas.addEventListener('mouseup', this.onCanvasMouseUp.bind(this));
-        canvas.addEventListener('wheel', this.onCanvasWheel.bind(this));
-        canvas.addEventListener('contextmenu', this.onCanvasRightClick.bind(this));
+        canvas.addEventListener('mousedown', (e) => this.onCanvasMouseDown(e));
+        canvas.addEventListener('mousemove', (e) => this.onCanvasMouseMove(e));
+        canvas.addEventListener('mouseup', (e) => this.onCanvasMouseUp(e));
+        canvas.addEventListener('wheel', (e) => this.onCanvasWheel(e));
+        canvas.addEventListener('contextmenu', (e) => this.onCanvasRightClick(e));
         
         // Global events
-        document.addEventListener('keydown', this.onKeyDown.bind(this));
-        document.addEventListener('click', this.onDocumentClick.bind(this));
+        document.addEventListener('keydown', (e) => this.onKeyDown(e));
+        document.addEventListener('click', (e) => this.onDocumentClick(e));
         
         // Window events
-        window.addEventListener('resize', this.onWindowResize.bind(this));
+        window.addEventListener('resize', () => this.onWindowResize());
     }
     
     setupDragAndDrop() {
@@ -470,6 +470,14 @@ class PraxisLiveWeb {
         }
     }
     
+    onCanvasWheel(e) {
+        e.preventDefault();
+        // Handle zoom functionality (future enhancement)
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        this.zoom *= delta;
+        // TODO: Implement actual zoom transformation
+    }
+
     onWindowResize() {
         // Update canvas size and redraw connections
         this.updateConnections();
@@ -629,30 +637,51 @@ class PraxisLiveWeb {
 // Utility functions
 function toggleCategory(categoryId) {
     const componentList = document.getElementById(`${categoryId}-components`);
-    const isHidden = componentList.style.display === 'none';
-    componentList.style.display = isHidden ? 'block' : 'none';
-}
-
-// Global functions for toolbar
-function newProject() { praxisLive.newProject(); }
-function openProject() { praxisLive.openProject(); }
-function saveProject() { praxisLive.saveProject(); }
-function runProject() { praxisLive.runProject(); }
-function stopProject() { praxisLive.stopProject(); }
-function connectToPraxisCore() { praxisLive.connectToPraxisCore(); }
-
-// Context menu functions
-function addNode() { /* TODO */ }
-function deleteNode() { praxisLive.deleteNode(); }
-function duplicateNode() { /* TODO */ }
-function editCode() { 
-    if (praxisLive.selectedNode) {
-        praxisLive.editNodeCode(praxisLive.selectedNode.id);
+    if (componentList) {
+        const isHidden = componentList.style.display === 'none';
+        componentList.style.display = isHidden ? 'block' : 'none';
     }
 }
 
 // Initialize the application
 let praxisLive;
+
+// Global functions for toolbar
+function newProject() { 
+    if (praxisLive) praxisLive.newProject(); 
+}
+function openProject() { 
+    if (praxisLive) praxisLive.openProject(); 
+}
+function saveProject() { 
+    if (praxisLive) praxisLive.saveProject(); 
+}
+function runProject() { 
+    if (praxisLive) praxisLive.runProject(); 
+}
+function stopProject() { 
+    if (praxisLive) praxisLive.stopProject(); 
+}
+function connectToPraxisCore() { 
+    if (praxisLive) praxisLive.connectToPraxisCore(); 
+}
+
+// Context menu functions
+function addNode() { 
+    /* TODO */ 
+}
+function deleteNode() { 
+    if (praxisLive) praxisLive.deleteNode(); 
+}
+function duplicateNode() { 
+    /* TODO */ 
+}
+function editCode() { 
+    if (praxisLive && praxisLive.selectedNode) {
+        praxisLive.editNodeCode(praxisLive.selectedNode.id);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     praxisLive = new PraxisLiveWeb();
 });
