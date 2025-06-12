@@ -12,6 +12,8 @@ import socket
 import threading
 import time
 import os
+import cgi
+import tempfile
 from pathlib import Path
 
 class PraxisLiveWebHandler(http.server.SimpleHTTPRequestHandler):
@@ -24,7 +26,51 @@ class PraxisLiveWebHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path.startswith('/api/'):
             self.handle_api_request()
             return
+        elif self.path.startswith('/media/'):
+            self.serve_media_file()
+            return
         super().do_GET()
+    
+    def serve_media_file(self):
+        """Serve media files"""
+        try:
+            # Get the filename from the path
+            filename = self.path[7:]  # Remove '/media/' prefix
+            media_dir = Path(__file__).parent / "media"
+            file_path = media_dir / filename
+            
+            if not file_path.exists() or not file_path.is_file():
+                self.send_error(404, "Media file not found")
+                return
+            
+            # Determine content type
+            file_ext = file_path.suffix.lower()
+            content_types = {
+                '.mp3': 'audio/mpeg',
+                '.wav': 'audio/wav',
+                '.ogg': 'audio/ogg',
+                '.m4a': 'audio/mp4',
+                '.mp4': 'video/mp4',
+                '.avi': 'video/x-msvideo',
+                '.mov': 'video/quicktime',
+                '.mkv': 'video/x-matroska',
+                '.webm': 'video/webm'
+            }
+            
+            content_type = content_types.get(file_ext, 'application/octet-stream')
+            
+            # Send the file
+            self.send_response(200)
+            self.send_header('Content-Type', content_type)
+            self.send_header('Content-Length', str(file_path.stat().st_size))
+            self.send_header('Accept-Ranges', 'bytes')
+            self.end_headers()
+            
+            with open(file_path, 'rb') as f:
+                self.wfile.write(f.read())
+                
+        except Exception as e:
+            self.send_error(500, f"Error serving media file: {str(e)}")
     
     def do_POST(self):
         if self.path.startswith('/api/'):
@@ -69,6 +115,10 @@ class PraxisLiveWebHandler(http.server.SimpleHTTPRequestHandler):
             response = self.save_project()
         elif path == 'load':
             response = self.load_project()
+        elif path == 'upload':
+            response = self.handle_file_upload()
+        elif path == 'files':
+            response = self.list_media_files()
         elif path.startswith('command/'):
             command = path[8:]  # Remove 'command/' prefix
             response = self.send_praxiscore_command(command)
@@ -291,6 +341,91 @@ class PraxisLiveWebHandler(http.server.SimpleHTTPRequestHandler):
             "count": len(projects)
         }
     
+    def handle_file_upload(self):
+        """Handle media file uploads"""
+        if self.command == 'POST':
+            try:
+                # Create media directory if it doesn't exist
+                media_dir = Path(__file__).parent / "media"
+                media_dir.mkdir(exist_ok=True)
+                
+                # Parse the multipart form data
+                content_type = self.headers['Content-Type']
+                if not content_type.startswith('multipart/form-data'):
+                    return {"status": "error", "message": "Expected multipart/form-data"}
+                
+                # Get content length
+                content_length = int(self.headers['Content-Length'])
+                
+                # Parse the form data
+                form_data = cgi.FieldStorage(
+                    fp=self.rfile,
+                    headers=self.headers,
+                    environ={'REQUEST_METHOD': 'POST'}
+                )
+                
+                if 'file' not in form_data:
+                    return {"status": "error", "message": "No file provided"}
+                
+                file_item = form_data['file']
+                if not file_item.filename:
+                    return {"status": "error", "message": "No file selected"}
+                
+                # Check file type
+                allowed_extensions = {'.mp3', '.wav', '.ogg', '.m4a', '.mp4', '.avi', '.mov', '.mkv', '.webm'}
+                file_ext = Path(file_item.filename).suffix.lower()
+                
+                if file_ext not in allowed_extensions:
+                    return {"status": "error", "message": f"Unsupported file type: {file_ext}"}
+                
+                # Save the file
+                safe_filename = "".join(c for c in file_item.filename if c.isalnum() or c in '.-_')
+                file_path = media_dir / safe_filename
+                
+                with open(file_path, 'wb') as f:
+                    f.write(file_item.file.read())
+                
+                return {
+                    "status": "success",
+                    "message": "File uploaded successfully",
+                    "filename": safe_filename,
+                    "path": str(file_path),
+                    "size": file_path.stat().st_size,
+                    "type": "audio" if file_ext in {'.mp3', '.wav', '.ogg', '.m4a'} else "video"
+                }
+                
+            except Exception as e:
+                return {"status": "error", "message": f"Upload failed: {str(e)}"}
+        else:
+            return {"status": "error", "message": "POST method required for file upload"}
+    
+    def list_media_files(self):
+        """List available media files"""
+        media_dir = Path(__file__).parent / "media"
+        if not media_dir.exists():
+            return {"status": "success", "files": [], "count": 0}
+        
+        files = []
+        for file_path in media_dir.iterdir():
+            if file_path.is_file():
+                file_ext = file_path.suffix.lower()
+                file_type = "audio" if file_ext in {'.mp3', '.wav', '.ogg', '.m4a'} else \
+                           "video" if file_ext in {'.mp4', '.avi', '.mov', '.mkv', '.webm'} else "other"
+                
+                files.append({
+                    "name": file_path.name,
+                    "size": file_path.stat().st_size,
+                    "type": file_type,
+                    "modified": file_path.stat().st_mtime,
+                    "path": f"/media/{file_path.name}"
+                })
+        
+        return {
+            "status": "success",
+            "files": sorted(files, key=lambda x: x['modified'], reverse=True),
+            "count": len(files)
+        }
+
     def send_praxiscore_command(self, command):
         """Send command to PraxisCORE"""
         # For now, simulate command execution

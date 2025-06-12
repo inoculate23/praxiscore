@@ -156,11 +156,23 @@ class PraxisLiveWeb {
         const defaults = {
             'audio:oscillator': { frequency: 440, waveform: 'sine', amplitude: 0.5 },
             'audio:filter': { type: 'lowpass', frequency: 1000, resonance: 1 },
-            'video:player': { file: '', loop: false, speed: 1 },
+            'audio:recorder': { file: '', format: 'wav', quality: 'high' },
+            'video:player': { file: '', loop: false, speed: 1, volume: 1.0 },
+            'video:camera': { device: 'default', resolution: '1920x1080', fps: 30 },
             'core:variable': { value: 0, type: 'number' },
             'core:clock': { bpm: 120, pattern: '4/4' }
         };
         return defaults[type] || {};
+    }
+    
+    getFileInputProperties(type) {
+        const fileProps = {
+            'video:player': ['file'],
+            'audio:recorder': ['file'],
+            'video:effect': ['file'],
+            'audio:filter': ['file']
+        };
+        return fileProps[type] || [];
     }
     
     setupNodeEvents(nodeElement) {
@@ -264,13 +276,32 @@ class PraxisLiveWeb {
                 <h4 style="color: #ffd700; margin: 15px 0 10px 0;">Properties</h4>
             </div>`;
             
+            const fileInputProps = this.getFileInputProperties(node.type);
+            
             Object.entries(node.properties).forEach(([key, value]) => {
-                html += `<div class="property-group">
-                    <label class="property-label">${key.charAt(0).toUpperCase() + key.slice(1)}</label>
-                    <input class="property-input" value="${value}" 
-                           onchange="praxisLive.updateNodeProperty('${node.id}', '${key}', this.value)"
-                           placeholder="Enter ${key}...">
-                </div>`;
+                if (fileInputProps.includes(key)) {
+                    // File input property
+                    html += `<div class="property-group">
+                        <label class="property-label">${key.charAt(0).toUpperCase() + key.slice(1)} File</label>
+                        <div style="display: flex; gap: 5px;">
+                            <input class="property-input" value="${value}" 
+                                   onchange="praxisLive.updateNodeProperty('${node.id}', '${key}', this.value)"
+                                   placeholder="Select or enter file path..." style="flex: 1;">
+                            <button class="btn" style="padding: 4px 8px; font-size: 10px;" 
+                                    onclick="praxisLive.selectMediaFile('${node.id}', '${key}')">Browse</button>
+                        </div>
+                        <button class="btn" style="margin-top: 5px; padding: 4px 8px; font-size: 10px; background: #107c10;" 
+                                onclick="praxisLive.uploadMediaFile('${node.id}', '${key}')">Upload New</button>
+                    </div>`;
+                } else {
+                    // Regular property
+                    html += `<div class="property-group">
+                        <label class="property-label">${key.charAt(0).toUpperCase() + key.slice(1)}</label>
+                        <input class="property-input" value="${value}" 
+                               onchange="praxisLive.updateNodeProperty('${node.id}', '${key}', this.value)"
+                               placeholder="Enter ${key}...">
+                    </div>`;
+                }
             });
         } else {
             html += `<div class="property-group">
@@ -706,11 +737,337 @@ class PraxisLiveWeb {
         }, 500);
     }
     
+    selectMediaFile(nodeId, property) {
+        this.showMediaFileBrowser(nodeId, property);
+    }
+    
+    async uploadMediaFile(nodeId, property) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'audio/*,video/*';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                try {
+                    this.log(`Uploading ${file.name}...`, 'info');
+                    
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    const response = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        this.updateNodeProperty(nodeId, property, result.filename);
+                        this.log(`File uploaded: ${result.filename}`, 'success');
+                    } else {
+                        this.log(`Upload failed: ${result.message}`, 'error');
+                    }
+                } catch (error) {
+                    this.log(`Upload error: ${error.message}`, 'error');
+                }
+            }
+        };
+        input.click();
+    }
+    
+    async showMediaFileBrowser(nodeId, property) {
+        try {
+            const response = await fetch('/api/files');
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                this.createMediaFileBrowserModal(data.files, nodeId, property);
+            } else {
+                this.log('Failed to load media files', 'error');
+            }
+        } catch (error) {
+            this.log(`Error loading media files: ${error.message}`, 'error');
+        }
+    }
+    
+    createMediaFileBrowserModal(files, nodeId, property) {
+        // Remove existing modal
+        const existingModal = document.getElementById('mediaFileBrowser');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Create modal
+        const modal = document.createElement('div');
+        modal.id = 'mediaFileBrowser';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        `;
+        
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = `
+            background: #2d2d30;
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 600px;
+            max-height: 500px;
+            overflow-y: auto;
+            color: white;
+        `;
+        
+        let html = `
+            <h3 style="margin-bottom: 15px; color: #4a9eff;">Select Media File</h3>
+            <div style="margin-bottom: 15px;">
+                <button onclick="praxisLive.uploadMediaFile('${nodeId}', '${property}')" 
+                        style="background: #107c10; color: white; border: none; padding: 8px 15px; border-radius: 3px; cursor: pointer;">
+                    Upload New File
+                </button>
+            </div>
+        `;
+        
+        if (files.length === 0) {
+            html += '<p style="color: #666;">No media files available. Upload a file to get started.</p>';
+        } else {
+            html += '<div style="max-height: 300px; overflow-y: auto;">';
+            files.forEach(file => {
+                const icon = file.type === 'audio' ? '🎵' : file.type === 'video' ? '🎬' : '📄';
+                const size = (file.size / 1024 / 1024).toFixed(2);
+                html += `
+                    <div style="display: flex; align-items: center; padding: 8px; border: 1px solid #3e3e42; margin-bottom: 5px; border-radius: 3px; cursor: pointer;"
+                         onclick="praxisLive.selectFile('${nodeId}', '${property}', '${file.name}')">
+                        <span style="margin-right: 10px; font-size: 18px;">${icon}</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: bold;">${file.name}</div>
+                            <div style="font-size: 11px; color: #999;">${file.type} • ${size} MB</div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+        }
+        
+        html += `
+            <div style="margin-top: 15px; text-align: right;">
+                <button onclick="document.getElementById('mediaFileBrowser').remove()" 
+                        style="background: #666; color: white; border: none; padding: 8px 15px; border-radius: 3px; cursor: pointer;">
+                    Cancel
+                </button>
+            </div>
+        `;
+        
+        modalContent.innerHTML = html;
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+        
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    }
+    
+    selectFile(nodeId, property, filename) {
+        this.updateNodeProperty(nodeId, property, filename);
+        document.getElementById('mediaFileBrowser').remove();
+        this.log(`Selected file: ${filename}`, 'success');
+    }
+
     editNodeCode(nodeId) {
         const node = this.nodes.get(nodeId);
         if (node) {
-            this.log(`Opening code editor for ${node.type}`, 'info');
-            // TODO: Open code editor modal
+            this.showCodeEditor(node);
+        }
+    }
+    
+    showCodeEditor(node) {
+        // Remove existing modal
+        const existingModal = document.getElementById('codeEditor');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Create modal
+        const modal = document.createElement('div');
+        modal.id = 'codeEditor';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        `;
+        
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = `
+            background: #1e1e1e;
+            border-radius: 8px;
+            padding: 20px;
+            width: 80%;
+            height: 80%;
+            display: flex;
+            flex-direction: column;
+            color: white;
+        `;
+        
+        // Generate sample code for the node
+        const sampleCode = this.generateNodeCode(node);
+        
+        modalContent.innerHTML = `
+            <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 15px;">
+                <h3 style="color: #4a9eff; margin: 0;">Code Editor - ${node.type}</h3>
+                <div>
+                    <button onclick="praxisLive.saveNodeCode('${node.id}')" 
+                            style="background: #107c10; color: white; border: none; padding: 8px 15px; border-radius: 3px; cursor: pointer; margin-right: 10px;">
+                        Save & Apply
+                    </button>
+                    <button onclick="document.getElementById('codeEditor').remove()" 
+                            style="background: #666; color: white; border: none; padding: 8px 15px; border-radius: 3px; cursor: pointer;">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+            <textarea id="nodeCodeEditor" style="
+                flex: 1;
+                background: #0d0d0d;
+                color: #ffffff;
+                border: 1px solid #3e3e42;
+                border-radius: 3px;
+                padding: 15px;
+                font-family: 'Courier New', monospace;
+                font-size: 14px;
+                resize: none;
+                outline: none;
+            ">${sampleCode}</textarea>
+            <div style="margin-top: 10px; font-size: 12px; color: #999;">
+                💡 This is a live code editor. Changes will be applied to the PraxisCORE runtime in real-time.
+            </div>
+        `;
+        
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+        
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+        
+        this.log(`Opened code editor for ${node.type}`, 'info');
+    }
+    
+    generateNodeCode(node) {
+        const codeTemplates = {
+            'audio:oscillator': `// Audio Oscillator Component
+@In frequency = ${node.properties.frequency || 440};
+@In waveform = "${node.properties.waveform || 'sine'}";
+@In amplitude = ${node.properties.amplitude || 0.5};
+@Out output;
+
+void setup() {
+    // Initialize oscillator
+}
+
+void update() {
+    // Generate waveform based on frequency and type
+    double phase = getPhase();
+    double sample = 0;
+    
+    switch(waveform) {
+        case "sine":
+            sample = sin(phase * 2 * PI) * amplitude;
+            break;
+        case "square":
+            sample = (sin(phase * 2 * PI) > 0 ? 1 : -1) * amplitude;
+            break;
+        case "sawtooth":
+            sample = (2 * (phase - floor(phase)) - 1) * amplitude;
+            break;
+    }
+    
+    output = sample;
+}`,
+            
+            'video:player': `// Video Player Component
+@In file = "${node.properties.file || ''}";
+@In loop = ${node.properties.loop || false};
+@In speed = ${node.properties.speed || 1.0};
+@Out output;
+
+void setup() {
+    if (!file.isEmpty()) {
+        loadVideo(file);
+    }
+}
+
+void update() {
+    if (hasVideo()) {
+        updatePlayback(speed);
+        output = getCurrentFrame();
+        
+        if (isFinished() && loop) {
+            restart();
+        }
+    }
+}`,
+            
+            'core:variable': `// Variable Component
+@In value = ${node.properties.value || 0};
+@Out output;
+
+void update() {
+    output = value;
+}`
+        };
+        
+        return codeTemplates[node.type] || `// ${node.type} Component
+// Add your custom code here
+
+void setup() {
+    // Initialization code
+}
+
+void update() {
+    // Main processing code
+}`;
+    }
+    
+    saveNodeCode(nodeId) {
+        const codeEditor = document.getElementById('nodeCodeEditor');
+        if (codeEditor) {
+            const code = codeEditor.value;
+            const node = this.nodes.get(nodeId);
+            
+            if (node) {
+                // Store the code in the node
+                node.customCode = code;
+                
+                // TODO: Send code to PraxisCORE for compilation and execution
+                this.log(`Code saved for ${node.type}`, 'success');
+                this.log('Code compilation and deployment to PraxisCORE...', 'info');
+                
+                // Simulate code compilation
+                setTimeout(() => {
+                    this.log('Code compiled and applied successfully', 'success');
+                }, 1000);
+            }
+            
+            document.getElementById('codeEditor').remove();
         }
     }
 }

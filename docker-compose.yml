@@ -47,6 +47,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./praxis-live-web/projects:/app/projects
+      - ./praxis-live-web/media:/app/media
     environment:
       - PRAXISCORE_HOST=praxiscore
       - PRAXISCORE_PORT=8080

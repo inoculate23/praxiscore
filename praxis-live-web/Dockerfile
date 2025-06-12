@@ -5,8 +5,8 @@ WORKDIR /app
 # Copy the PraxisLIVE web files
 COPY . .
 
-# Create projects directory
-RUN mkdir -p projects
+# Create projects and media directories
+RUN mkdir -p projects media
 
 # Make the server executable
 RUN chmod +x server.py
