@@ -21,10 +21,11 @@ class PraxisLiveWeb {
         this.setupDragAndDrop();
         this.log('PraxisLIVE Web IDE ready', 'success');
         
-        // Add a demo node for testing
+        // Add demo nodes for testing
         setTimeout(() => {
-            const testNode = this.addNodeAt('audio:oscillator', 200, 150);
-            this.log('Added demo oscillator node - try clicking on it!', 'info');
+            const audioNode = this.addNodeAt('audio:oscillator', 150, 120);
+            const videoNode = this.addNodeAt('video:output', 350, 120);
+            this.log('Added demo nodes - audio oscillator and video output!', 'info');
         }, 500);
         
         // Auto-connect to PraxisCORE on startup
@@ -125,6 +126,13 @@ class PraxisLiveWeb {
         // Add to canvas
         document.getElementById('nodeCanvas').appendChild(nodeElement);
         
+        // Initialize preview for output nodes
+        if (type.includes(':output')) {
+            setTimeout(() => {
+                this.initializeNodePreview(type, nodeId);
+            }, 100);
+        }
+        
         // Store node data
         const nodeData = {
             id: nodeId,
@@ -195,6 +203,17 @@ class PraxisLiveWeb {
         return '';
     }
     
+    initializeNodePreview(type, nodeId) {
+        if (type === 'video:output') {
+            // Auto-start video preview for video output nodes
+            this.startVideoPreview(nodeId);
+            this.log(`Initialized video preview for ${nodeId}`, 'info');
+        } else if (type === 'audio:output') {
+            // Initialize audio preview
+            this.log(`Initialized audio preview for ${nodeId}`, 'info');
+        }
+    }
+    
     // Audio Output/Preview Methods
     toggleAudioMonitor(nodeId) {
         const node = this.nodes.get(nodeId);
@@ -252,29 +271,84 @@ class PraxisLiveWeb {
     
     startVideoPreview(nodeId) {
         const canvas = document.getElementById(`${nodeId}_preview`);
-        if (canvas) {
-            const ctx = canvas.getContext('2d');
+        if (!canvas) {
+            console.error(`Canvas not found for node ${nodeId}`);
+            return;
+        }
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            console.error(`Could not get 2D context for canvas ${nodeId}`);
+            return;
+        }
+        
+        // Store interval ID on the node for cleanup
+        const node = this.nodes.get(nodeId);
+        if (node) {
+            // Clear any existing interval
+            if (node.videoInterval) {
+                clearInterval(node.videoInterval);
+            }
             
-            // Simulate video preview - in real implementation, this would connect to PraxisCORE
-            this.videoPreviewInterval = setInterval(() => {
-                // Generate test pattern
-                ctx.fillStyle = `hsl(${Date.now() / 10 % 360}, 50%, 50%)`;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                // Add timestamp
-                ctx.fillStyle = 'white';
-                ctx.font = '10px Arial';
-                ctx.fillText(new Date().toLocaleTimeString(), 5, 15);
+            // Create animated test pattern
+            let frame = 0;
+            node.videoInterval = setInterval(() => {
+                try {
+                    // Create colorful test pattern
+                    const time = Date.now() / 1000;
+                    
+                    // Gradient background
+                    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                    gradient.addColorStop(0, `hsl(${time * 50 % 360}, 70%, 60%)`);
+                    gradient.addColorStop(1, `hsl(${(time * 50 + 180) % 360}, 70%, 40%)`);
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Moving circles
+                    for (let i = 0; i < 3; i++) {
+                        const x = (Math.sin(time + i * 2) + 1) * canvas.width / 2;
+                        const y = (Math.cos(time * 0.7 + i * 2) + 1) * canvas.height / 2;
+                        
+                        ctx.beginPath();
+                        ctx.arc(x, y, 10 + Math.sin(time * 2 + i) * 5, 0, Math.PI * 2);
+                        ctx.fillStyle = `hsla(${(time * 100 + i * 120) % 360}, 80%, 80%, 0.8)`;
+                        ctx.fill();
+                    }
+                    
+                    // Frame counter and time
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 8px Arial';
+                    ctx.strokeStyle = 'black';
+                    ctx.lineWidth = 2;
+                    
+                    const timeText = new Date().toLocaleTimeString();
+                    const frameText = `Frame: ${frame++}`;
+                    
+                    ctx.strokeText(timeText, 3, 12);
+                    ctx.fillText(timeText, 3, 12);
+                    
+                    ctx.strokeText(frameText, 3, 25);
+                    ctx.fillText(frameText, 3, 25);
+                    
+                    // Node ID
+                    ctx.strokeText(nodeId, 3, canvas.height - 5);
+                    ctx.fillText(nodeId, 3, canvas.height - 5);
+                    
+                } catch (error) {
+                    console.error(`Error drawing video preview for ${nodeId}:`, error);
+                }
             }, 33); // ~30fps
             
-            this.log(`Starting video preview for ${nodeId}`, 'info');
+            this.log(`Starting video preview for ${nodeId}`, 'success');
         }
     }
     
     stopVideoPreview(nodeId) {
-        if (this.videoPreviewInterval) {
-            clearInterval(this.videoPreviewInterval);
-            this.videoPreviewInterval = null;
+        const node = this.nodes.get(nodeId);
+        if (node && node.videoInterval) {
+            clearInterval(node.videoInterval);
+            node.videoInterval = null;
         }
         
         const canvas = document.getElementById(`${nodeId}_preview`);
@@ -282,6 +356,13 @@ class PraxisLiveWeb {
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Add "Stopped" text
+            ctx.fillStyle = '#666';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Preview Stopped', canvas.width / 2, canvas.height / 2);
+            ctx.textAlign = 'start';
         }
         
         this.log(`Stopped video preview for ${nodeId}`, 'info');
@@ -1500,6 +1581,16 @@ function testNodeSelection() {
             praxisLive.selectNode(firstNode.id);
             praxisLive.log('Test: Selected first node', 'success');
         }
+    }
+}
+
+function testVideoOutput() {
+    if (praxisLive) {
+        const videoNode = praxisLive.addNodeAt('video:output', 400, 300);
+        praxisLive.log('Created video output node for testing', 'info');
+        setTimeout(() => {
+            praxisLive.selectNode(videoNode.id);
+        }, 200);
     }
 }
 

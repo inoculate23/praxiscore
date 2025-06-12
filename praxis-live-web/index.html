@@ -403,6 +403,7 @@
         .video-preview {
             background: #000;
             position: relative;
+            min-height: 80px;
         }
         
         .video-preview video,
@@ -410,6 +411,8 @@
             width: 100%;
             height: 80px;
             object-fit: cover;
+            border: 1px solid #444;
+            display: block;
         }
         
         .preview-controls {
@@ -481,6 +484,7 @@
                 <button class="btn danger" onclick="stopProject()" id="stopBtn">⏹ Stop</button>
                 <button class="btn" onclick="connectToPraxisCore()">Connect</button>
                 <button class="btn" onclick="testNodeSelection()" style="background: #ffd700; color: #000;">Test Selection</button>
+                <button class="btn" onclick="testVideoOutput()" style="background: #ff6b4a; color: #fff;">Test Video</button>
             </div>
         </div>
 
