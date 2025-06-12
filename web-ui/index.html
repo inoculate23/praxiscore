@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PraxisCORE Web Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .connection-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff4444;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-indicator.connected {
+            background: #44ff44;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .control-group {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .control-group h3 {
+            margin-bottom: 15px;
+            color: #ffd700;
+        }
+        
+        input, button, select {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        
+        .console {
+            background: #000;
+            border-radius: 10px;
+            padding: 20px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            border: 2px solid #333;
+        }
+        
+        .console-line {
+            margin: 2px 0;
+        }
+        
+        .console-input {
+            color: #0f0;
+        }
+        
+        .console-output {
+            color: #fff;
+        }
+        
+        .console-error {
+            color: #f44;
+        }
+        
+        .command-input {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .command-input input {
+            flex: 1;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎛️ PraxisCORE Web Interface</h1>
+            <p>Real-time cyberphysical programming platform</p>
+        </div>
+        
+        <div class="connection-panel">
+            <div class="status">
+                <div class="status-indicator" id="status-indicator"></div>
+                <span id="status-text">Disconnected from PraxisCORE</span>
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <h3>Connection</h3>
+                    <input type="text" id="host" placeholder="localhost" value="localhost">
+                    <input type="number" id="port" placeholder="8080" value="8080">
+                    <button onclick="connect()" id="connect-btn">Connect</button>
+                </div>
+                
+                <div class="control-group">
+                    <h3>Quick Actions</h3>
+                    <button onclick="sendCommand('/info')" disabled id="info-btn">System Info</button>
+                    <button onclick="sendCommand('/list-components')" disabled id="components-btn">List Components</button>
+                    <button onclick="sendCommand('/create-project')" disabled id="project-btn">New Project</button>
+                </div>
+                
+                <div class="control-group">
+                    <h3>Runtime Control</h3>
+                    <button onclick="sendCommand('/start')" disabled id="start-btn">Start Runtime</button>
+                    <button onclick="sendCommand('/stop')" disabled id="stop-btn">Stop Runtime</button>
+                    <button onclick="sendCommand('/reload')" disabled id="reload-btn">Reload</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h3>Console</h3>
+            <div class="console" id="console"></div>
+            <div class="command-input">
+                <input type="text" id="command-input" placeholder="Enter PraxisCORE command..." disabled>
+                <button onclick="sendCustomCommand()" disabled id="send-btn">Send</button>
+            </div>
+        </div>
+        
+        <div class="features">
+            <div class="feature-card">
+                <span class="feature-icon">🎵</span>
+                <h3>Audio Processing</h3>
+                <p>Real-time audio synthesis and processing with live coding capabilities</p>
+            </div>
+            
+            <div class="feature-card">
+                <span class="feature-icon">🎨</span>
+                <h3>Visual Programming</h3>
+                <p>Create stunning visuals with real-time graphics and video processing</p>
+            </div>
+            
+            <div class="feature-card">
+                <span class="feature-icon">🤖</span>
+                <h3>IoT & Robotics</h3>
+                <p>Connect sensors, control hardware, and build cyberphysical systems</p>
+            </div>
+            
+            <div class="feature-card">
+                <span class="feature-icon">⚡</span>
+                <h3>Live Coding</h3>
+                <p>Edit and recompile code at runtime without stopping the system</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        let connected = false;
+        
+        function updateStatus(isConnected, message) {
+            connected = isConnected;
+            const indicator = document.getElementById('status-indicator');
+            const statusText = document.getElementById('status-text');
+            const buttons = document.querySelectorAll('button:not(#connect-btn)');
+            const commandInput = document.getElementById('command-input');
+            
+            if (isConnected) {
+                indicator.classList.add('connected');
+                statusText.textContent = message || 'Connected to PraxisCORE';
+                buttons.forEach(btn => btn.disabled = false);
+                commandInput.disabled = false;
+                document.getElementById('connect-btn').textContent = 'Disconnect';
+            } else {
+                indicator.classList.remove('connected');
+                statusText.textContent = message || 'Disconnected from PraxisCORE';
+                buttons.forEach(btn => btn.disabled = true);
+                commandInput.disabled = true;
+                document.getElementById('connect-btn').textContent = 'Connect';
+            }
+        }
+        
+        function addToConsole(message, type = 'output') {
+            const console = document.getElementById('console');
+            const line = document.createElement('div');
+            line.className = `console-line console-${type}`;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            console.appendChild(line);
+            console.scrollTop = console.scrollHeight;
+        }
+        
+        function connect() {
+            if (connected) {
+                disconnect();
+                return;
+            }
+            
+            const host = document.getElementById('host').value || 'localhost';
+            const port = document.getElementById('port').value || '8080';
+            
+            addToConsole(`Attempting to connect to ${host}:${port}...`, 'input');
+            
+            // Since PraxisCORE doesn't use WebSockets by default, we'll simulate the connection
+            // In a real implementation, you'd need to create a WebSocket bridge or use a different protocol
+            
+            // Simulate connection attempt
+            setTimeout(() => {
+                // For demo purposes, we'll simulate a successful connection
+                updateStatus(true, `Connected to PraxisCORE at ${host}:${port}`);
+                addToConsole('Connected successfully!', 'output');
+                addToConsole('Ready for commands. Type /help for available commands.', 'output');
+            }, 1000);
+        }
+        
+        function disconnect() {
+            updateStatus(false);
+            addToConsole('Disconnected from PraxisCORE', 'output');
+        }
+        
+        function sendCommand(command) {
+            if (!connected) {
+                addToConsole('Not connected to PraxisCORE', 'error');
+                return;
+            }
+            
+            addToConsole(`> ${command}`, 'input');
+            
+            // Simulate command responses
+            setTimeout(() => {
+                switch(command) {
+                    case '/info':
+                        addToConsole('PraxisCORE v6.3.0-SNAPSHOT', 'output');
+                        addToConsole('Runtime: Java 21.0.7', 'output');
+                        addToConsole('Modules: 27 loaded', 'output');
+                        break;
+                    case '/list-components':
+                        addToConsole('Available components:', 'output');
+                        addToConsole('- audio:oscillator', 'output');
+                        addToConsole('- video:player', 'output');
+                        addToConsole('- core:variable', 'output');
+                        addToConsole('- data:list', 'output');
+                        break;
+                    case '/create-project':
+                        addToConsole('Creating new project...', 'output');
+                        addToConsole('Project created: /projects/untitled-1', 'output');
+                        break;
+                    case '/start':
+                        addToConsole('Starting runtime...', 'output');
+                        addToConsole('Runtime started successfully', 'output');
+                        break;
+                    case '/stop':
+                        addToConsole('Stopping runtime...', 'output');
+                        addToConsole('Runtime stopped', 'output');
+                        break;
+                    case '/reload':
+                        addToConsole('Reloading configuration...', 'output');
+                        addToConsole('Configuration reloaded', 'output');
+                        break;
+                    default:
+                        addToConsole(`Command executed: ${command}`, 'output');
+                }
+            }, 500);
+        }
+        
+        function sendCustomCommand() {
+            const input = document.getElementById('command-input');
+            const command = input.value.trim();
+            
+            if (!command) return;
+            
+            sendCommand(command);
+            input.value = '';
+        }
+        
+        // Handle Enter key in command input
+        document.getElementById('command-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendCustomCommand();
+            }
+        });
+        
+        // Initialize
+        addToConsole('PraxisCORE Web Interface initialized', 'output');
+        addToConsole('Enter connection details and click Connect to begin', 'output');
+    </script>
+</body>
+</html>

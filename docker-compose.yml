@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  praxiscore:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/opt/praxiscore/data
+    environment:
+      - PRAXIS_HOME=/opt/praxiscore
+      - PRAXIS_USER_DIR=/opt/praxiscore/data
+    networks:
+      - praxis-network
+    container_name: praxiscore-runtime
+    restart: unless-stopped
+
+  web-ui:
+    build:
+      context: ./web-ui
+      dockerfile: Dockerfile
+    ports:
+      - "9000:9000"
+    depends_on:
+      - praxiscore
+    networks:
+      - praxis-network
+    container_name: praxiscore-web-ui
+    restart: unless-stopped
+    environment:
+      - PRAXISCORE_HOST=praxiscore
+      - PRAXISCORE_PORT=8080
+
+networks:
+  praxis-network:
+    driver: bridge
+
+volumes:
+  praxis-data:
