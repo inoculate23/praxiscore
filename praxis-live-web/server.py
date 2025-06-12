@@ -119,6 +119,12 @@ class PraxisLiveWebHandler(http.server.SimpleHTTPRequestHandler):
             response = self.handle_file_upload()
         elif path == 'files':
             response = self.list_media_files()
+        elif path.startswith('render/'):
+            render_type = path[7:]  # Remove 'render/' prefix
+            response = self.handle_render_request(render_type)
+        elif path.startswith('audio-stream/'):
+            node_id = path[13:]  # Remove 'audio-stream/' prefix
+            response = self.get_audio_stream(node_id)
         elif path.startswith('command/'):
             command = path[8:]  # Remove 'command/' prefix
             response = self.send_praxiscore_command(command)
@@ -258,13 +264,17 @@ class PraxisLiveWebHandler(http.server.SimpleHTTPRequestHandler):
                 {"type": "audio:filter", "name": "Filter", "description": "Audio frequency filter"},
                 {"type": "audio:reverb", "name": "Reverb", "description": "Reverb effect processor"},
                 {"type": "audio:mixer", "name": "Mixer", "description": "Audio signal mixer"},
-                {"type": "audio:recorder", "name": "Recorder", "description": "Audio recorder"}
+                {"type": "audio:recorder", "name": "Recorder", "description": "Audio recorder"},
+                {"type": "audio:output", "name": "Output", "description": "Audio output and preview"},
+                {"type": "audio:render", "name": "Render", "description": "Render audio to file"}
             ],
             "video": [
                 {"type": "video:player", "name": "Player", "description": "Video file player"},
                 {"type": "video:camera", "name": "Camera", "description": "Camera input source"},
                 {"type": "video:effect", "name": "Effect", "description": "Video effects processor"},
-                {"type": "video:composite", "name": "Composite", "description": "Video layer compositor"}
+                {"type": "video:composite", "name": "Composite", "description": "Video layer compositor"},
+                {"type": "video:output", "name": "Output", "description": "Video output and preview"},
+                {"type": "video:render", "name": "Render", "description": "Render video to file"}
             ],
             "core": [
                 {"type": "core:variable", "name": "Variable", "description": "Value storage"},
@@ -424,6 +434,96 @@ class PraxisLiveWebHandler(http.server.SimpleHTTPRequestHandler):
             "status": "success",
             "files": sorted(files, key=lambda x: x['modified'], reverse=True),
             "count": len(files)
+        }
+
+    def handle_render_request(self, render_type):
+        """Handle audio/video render requests"""
+        if self.command == 'POST':
+            try:
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length)
+                render_data = json.loads(post_data.decode())
+                
+                node_id = render_data.get('nodeId')
+                filename = render_data.get('filename', f'output_{int(time.time())}.wav')
+                duration = render_data.get('duration', 10)
+                
+                # Create renders directory
+                renders_dir = Path(__file__).parent / "media"
+                renders_dir.mkdir(exist_ok=True)
+                
+                # Generate unique job ID
+                job_id = f"{render_type}_{node_id}_{int(time.time())}"
+                
+                if render_type == 'audio':
+                    # Simulate audio render process
+                    output_path = renders_dir / filename
+                    
+                    # In real implementation, this would:
+                    # 1. Get the audio chain from PraxisCORE
+                    # 2. Process the audio for specified duration
+                    # 3. Save to the output file
+                    
+                    # For now, create a placeholder file
+                    with open(output_path, 'wb') as f:
+                        # Write minimal WAV header for demo
+                        f.write(b'RIFF\x24\x08\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x02\x00')
+                        f.write(b'\x44\xac\x00\x00\x10\xb1\x02\x00\x04\x00\x10\x00data\x00\x08\x00\x00')
+                        # Write some audio data (silence)
+                        f.write(b'\x00' * (44100 * 2 * 2 * duration))  # 44.1kHz, 16-bit, stereo
+                    
+                    return {
+                        "status": "success",
+                        "message": f"Audio render started: {filename}",
+                        "jobId": job_id,
+                        "outputPath": str(output_path),
+                        "duration": duration
+                    }
+                    
+                elif render_type == 'video':
+                    # Simulate video render process
+                    format_ext = render_data.get('format', 'mp4')
+                    if not filename.endswith(f'.{format_ext}'):
+                        filename = f"{filename.rsplit('.', 1)[0]}.{format_ext}"
+                    
+                    output_path = renders_dir / filename
+                    
+                    # In real implementation, this would:
+                    # 1. Get the video chain from PraxisCORE
+                    # 2. Process the video for specified duration
+                    # 3. Encode and save to the output file
+                    
+                    # For now, create a placeholder file
+                    with open(output_path, 'wb') as f:
+                        f.write(b'Placeholder video file')
+                    
+                    return {
+                        "status": "success",
+                        "message": f"Video render started: {filename}",
+                        "jobId": job_id,
+                        "outputPath": str(output_path),
+                        "duration": duration,
+                        "fps": render_data.get('fps', 30)
+                    }
+                
+                return {"status": "error", "message": f"Unknown render type: {render_type}"}
+                
+            except Exception as e:
+                return {"status": "error", "message": f"Render failed: {str(e)}"}
+        else:
+            return {"status": "error", "message": "POST method required for render"}
+    
+    def get_audio_stream(self, node_id):
+        """Get audio stream for preview"""
+        # In real implementation, this would stream live audio from PraxisCORE
+        # For now, return a placeholder response
+        return {
+            "status": "success",
+            "message": f"Audio stream for node {node_id}",
+            "streamUrl": f"/media/stream_{node_id}.wav",
+            "format": "wav",
+            "sampleRate": 44100,
+            "channels": 2
         }
 
     def send_praxiscore_command(self, command):

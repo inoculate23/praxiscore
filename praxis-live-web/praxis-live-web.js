@@ -94,7 +94,7 @@ class PraxisLiveWeb {
         nodeElement.style.top = `${y}px`;
         
         // Create node structure
-        nodeElement.innerHTML = `
+        let nodeContent = `
             <div class="node-header">${name}</div>
             <div class="node-body">
                 <div class="node-port input" style="top: 20px;" data-port="input"></div>
@@ -102,8 +102,22 @@ class PraxisLiveWeb {
                 <div style="margin: 10px 0; font-size: 11px; color: #ccc;">
                     ${this.getNodeDescription(type)}
                 </div>
-            </div>
         `;
+        
+        // Add preview/render elements for special node types
+        if (type.includes(':output') || type.includes(':render')) {
+            nodeContent += this.createPreviewElement(type, nodeId);
+        }
+        
+        nodeContent += `</div>`;
+        nodeElement.innerHTML = nodeContent;
+        
+        // Add special styling for output/render nodes
+        if (type.includes(':output')) {
+            nodeElement.classList.add('output-node');
+        } else if (type.includes(':render')) {
+            nodeElement.classList.add('render-node');
+        }
         
         // Add event listeners
         this.setupNodeEvents(nodeElement);
@@ -129,6 +143,252 @@ class PraxisLiveWeb {
         return nodeData;
     }
     
+    createPreviewElement(type, nodeId) {
+        if (type === 'audio:output') {
+            return `
+                <div class="node-preview audio-preview">
+                    <audio id="${nodeId}_preview" controls style="width: 100%; height: 24px;">
+                        <source src="" type="audio/wav">
+                        Your browser does not support audio preview.
+                    </audio>
+                    <div class="preview-controls">
+                        <button class="preview-btn" onclick="praxisLive.toggleAudioMonitor('${nodeId}')">Monitor</button>
+                        <button class="preview-btn" onclick="praxisLive.toggleAudioMute('${nodeId}')">Mute</button>
+                    </div>
+                </div>
+            `;
+        } else if (type === 'video:output') {
+            return `
+                <div class="node-preview video-preview">
+                    <canvas id="${nodeId}_preview" width="120" height="80"></canvas>
+                    <div class="preview-controls">
+                        <button class="preview-btn" onclick="praxisLive.toggleVideoMonitor('${nodeId}')">Monitor</button>
+                        <button class="preview-btn" onclick="praxisLive.toggleFullscreen('${nodeId}')">Fullscreen</button>
+                    </div>
+                </div>
+            `;
+        } else if (type === 'audio:render') {
+            return `
+                <div class="node-preview render-progress">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Ready to render</span>
+                        <button class="preview-btn" onclick="praxisLive.startAudioRender('${nodeId}')">Start</button>
+                    </div>
+                    <div class="progress-bar" style="display: none;">
+                        <div class="progress-fill" id="${nodeId}_progress" style="width: 0%;"></div>
+                    </div>
+                </div>
+            `;
+        } else if (type === 'video:render') {
+            return `
+                <div class="node-preview render-progress">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Ready to render</span>
+                        <button class="preview-btn" onclick="praxisLive.startVideoRender('${nodeId}')">Start</button>
+                    </div>
+                    <div class="progress-bar" style="display: none;">
+                        <div class="progress-fill" id="${nodeId}_progress" style="width: 0%;"></div>
+                    </div>
+                </div>
+            `;
+        }
+        return '';
+    }
+    
+    // Audio Output/Preview Methods
+    toggleAudioMonitor(nodeId) {
+        const node = this.nodes.get(nodeId);
+        if (node) {
+            node.properties.monitor = !node.properties.monitor;
+            this.log(`Audio monitor ${node.properties.monitor ? 'enabled' : 'disabled'}`, 'info');
+            this.startAudioPreview(nodeId);
+        }
+    }
+    
+    toggleAudioMute(nodeId) {
+        const node = this.nodes.get(nodeId);
+        const audio = document.getElementById(`${nodeId}_preview`);
+        if (node && audio) {
+            node.properties.mute = !node.properties.mute;
+            audio.muted = node.properties.mute;
+            this.log(`Audio ${node.properties.mute ? 'muted' : 'unmuted'}`, 'info');
+        }
+    }
+    
+    startAudioPreview(nodeId) {
+        const audio = document.getElementById(`${nodeId}_preview`);
+        if (audio) {
+            // Simulate audio stream - in real implementation, this would connect to PraxisCORE
+            audio.src = '/api/audio-stream/' + nodeId;
+            this.log(`Starting audio preview for ${nodeId}`, 'info');
+        }
+    }
+    
+    // Video Output/Preview Methods
+    toggleVideoMonitor(nodeId) {
+        const node = this.nodes.get(nodeId);
+        if (node) {
+            node.properties.monitor = !node.properties.monitor;
+            this.log(`Video monitor ${node.properties.monitor ? 'enabled' : 'disabled'}`, 'info');
+            if (node.properties.monitor) {
+                this.startVideoPreview(nodeId);
+            } else {
+                this.stopVideoPreview(nodeId);
+            }
+        }
+    }
+    
+    toggleFullscreen(nodeId) {
+        const canvas = document.getElementById(`${nodeId}_preview`);
+        if (canvas) {
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else {
+                canvas.requestFullscreen();
+            }
+            this.log(`Toggled fullscreen for video output`, 'info');
+        }
+    }
+    
+    startVideoPreview(nodeId) {
+        const canvas = document.getElementById(`${nodeId}_preview`);
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            
+            // Simulate video preview - in real implementation, this would connect to PraxisCORE
+            this.videoPreviewInterval = setInterval(() => {
+                // Generate test pattern
+                ctx.fillStyle = `hsl(${Date.now() / 10 % 360}, 50%, 50%)`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Add timestamp
+                ctx.fillStyle = 'white';
+                ctx.font = '10px Arial';
+                ctx.fillText(new Date().toLocaleTimeString(), 5, 15);
+            }, 33); // ~30fps
+            
+            this.log(`Starting video preview for ${nodeId}`, 'info');
+        }
+    }
+    
+    stopVideoPreview(nodeId) {
+        if (this.videoPreviewInterval) {
+            clearInterval(this.videoPreviewInterval);
+            this.videoPreviewInterval = null;
+        }
+        
+        const canvas = document.getElementById(`${nodeId}_preview`);
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        this.log(`Stopped video preview for ${nodeId}`, 'info');
+    }
+    
+    // Render Methods
+    async startAudioRender(nodeId) {
+        const node = this.nodes.get(nodeId);
+        if (!node) return;
+        
+        const outputFile = node.properties.file || 'output.wav';
+        const duration = node.properties.duration || 10;
+        
+        this.log(`Starting audio render: ${outputFile} (${duration}s)`, 'info');
+        
+        try {
+            const response = await fetch('/api/render/audio', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nodeId: nodeId,
+                    filename: outputFile,
+                    format: node.properties.format,
+                    duration: duration,
+                    bitrate: node.properties.bitrate
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                this.simulateRenderProgress(nodeId, 'audio', result.jobId);
+            } else {
+                this.log(`Render failed: ${result.message}`, 'error');
+            }
+        } catch (error) {
+            this.log(`Render error: ${error.message}`, 'error');
+        }
+    }
+    
+    async startVideoRender(nodeId) {
+        const node = this.nodes.get(nodeId);
+        if (!node) return;
+        
+        const outputFile = node.properties.file || 'output.mp4';
+        const duration = node.properties.duration || 10;
+        
+        this.log(`Starting video render: ${outputFile} (${duration}s)`, 'info');
+        
+        try {
+            const response = await fetch('/api/render/video', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nodeId: nodeId,
+                    filename: outputFile,
+                    format: node.properties.format,
+                    duration: duration,
+                    quality: node.properties.quality,
+                    fps: node.properties.fps
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                this.simulateRenderProgress(nodeId, 'video', result.jobId);
+            } else {
+                this.log(`Render failed: ${result.message}`, 'error');
+            }
+        } catch (error) {
+            this.log(`Render error: ${error.message}`, 'error');
+        }
+    }
+    
+    simulateRenderProgress(nodeId, type, jobId) {
+        const progressBar = document.querySelector(`#${nodeId}_progress`).parentElement;
+        const progressFill = document.getElementById(`${nodeId}_progress`);
+        
+        if (!progressBar || !progressFill) return;
+        
+        // Show progress bar
+        progressBar.style.display = 'block';
+        
+        let progress = 0;
+        const duration = type === 'video' ? 8000 : 5000; // Video takes longer
+        const interval = 100;
+        const increment = (interval / duration) * 100;
+        
+        const updateProgress = () => {
+            progress += increment;
+            progressFill.style.width = `${Math.min(progress, 100)}%`;
+            
+            if (progress >= 100) {
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                    progressFill.style.width = '0%';
+                    this.log(`${type} render completed: /media/${jobId}`, 'success');
+                }, 1000);
+            } else {
+                setTimeout(updateProgress, interval);
+            }
+        };
+        
+        updateProgress();
+    }
+    
     getNodeDescription(type) {
         const descriptions = {
             'audio:oscillator': 'Generates audio waveforms',
@@ -136,10 +396,14 @@ class PraxisLiveWeb {
             'audio:reverb': 'Adds reverb effect',
             'audio:mixer': 'Mixes audio signals',
             'audio:recorder': 'Records audio output',
+            'audio:output': 'Audio output & preview',
+            'audio:render': 'Render audio to file',
             'video:player': 'Plays video files',
             'video:camera': 'Camera input',
             'video:effect': 'Video effects processor',
             'video:composite': 'Composites video layers',
+            'video:output': 'Video output & preview',
+            'video:render': 'Render video to file',
             'core:variable': 'Stores values',
             'core:clock': 'Timer and scheduler',
             'core:trigger': 'Event trigger',
@@ -157,8 +421,12 @@ class PraxisLiveWeb {
             'audio:oscillator': { frequency: 440, waveform: 'sine', amplitude: 0.5 },
             'audio:filter': { type: 'lowpass', frequency: 1000, resonance: 1 },
             'audio:recorder': { file: '', format: 'wav', quality: 'high' },
+            'audio:output': { volume: 1.0, mute: false, monitor: true },
+            'audio:render': { file: 'output.wav', format: 'wav', bitrate: 320, duration: 10 },
             'video:player': { file: '', loop: false, speed: 1, volume: 1.0 },
             'video:camera': { device: 'default', resolution: '1920x1080', fps: 30 },
+            'video:output': { fullscreen: false, scaling: 'fit', monitor: true },
+            'video:render': { file: 'output.mp4', format: 'mp4', quality: 'high', fps: 30, duration: 10 },
             'core:variable': { value: 0, type: 'number' },
             'core:clock': { bpm: 120, pattern: '4/4' }
         };
@@ -169,6 +437,8 @@ class PraxisLiveWeb {
         const fileProps = {
             'video:player': ['file'],
             'audio:recorder': ['file'],
+            'audio:render': ['file'],
+            'video:render': ['file'],
             'video:effect': ['file'],
             'audio:filter': ['file']
         };
@@ -1026,6 +1296,118 @@ void update() {
     }
 }`,
             
+            'audio:output': `// Audio Output Component
+@In input;
+@In volume = ${node.properties.volume || 1.0};
+@In mute = ${node.properties.mute || false};
+
+void setup() {
+    // Initialize audio output device
+    initAudioOutput();
+}
+
+void update() {
+    if (!mute && input != null) {
+        double outputSample = input * volume;
+        outputToDevice(outputSample);
+        
+        // Update preview if monitoring
+        if (monitor) {
+            updatePreview(outputSample);
+        }
+    }
+}`,
+
+            'video:output': `// Video Output Component
+@In input;
+@In scaling = "${node.properties.scaling || 'fit'}";
+@In fullscreen = ${node.properties.fullscreen || false};
+
+void setup() {
+    // Initialize video output display
+    initVideoOutput();
+}
+
+void update() {
+    if (input != null) {
+        Frame frame = processFrame(input, scaling);
+        
+        if (fullscreen) {
+            outputFullscreen(frame);
+        } else {
+            outputToWindow(frame);
+        }
+        
+        // Update preview if monitoring
+        if (monitor) {
+            updatePreview(frame);
+        }
+    }
+}`,
+
+            'audio:render': `// Audio Render Component
+@In input;
+@In filename = "${node.properties.file || 'output.wav'}";
+@In format = "${node.properties.format || 'wav'}";
+@In duration = ${node.properties.duration || 10};
+
+AudioWriter writer;
+double startTime;
+
+void setup() {
+    // Initialize audio writer
+    writer = new AudioWriter(filename, format);
+}
+
+void update() {
+    if (isRecording() && input != null) {
+        writer.writeSample(input);
+        
+        double elapsed = getCurrentTime() - startTime;
+        if (elapsed >= duration) {
+            stopRecording();
+            writer.close();
+        }
+    }
+}
+
+void startRecording() {
+    startTime = getCurrentTime();
+    writer.open();
+}`,
+
+            'video:render': `// Video Render Component
+@In input;
+@In filename = "${node.properties.file || 'output.mp4'}";
+@In format = "${node.properties.format || 'mp4'}";
+@In fps = ${node.properties.fps || 30};
+@In duration = ${node.properties.duration || 10};
+
+VideoWriter writer;
+double startTime;
+
+void setup() {
+    // Initialize video writer
+    writer = new VideoWriter(filename, format, fps);
+}
+
+void update() {
+    if (isRecording() && input != null) {
+        writer.writeFrame(input);
+        
+        double elapsed = getCurrentTime() - startTime;
+        if (elapsed >= duration) {
+            stopRecording();
+            writer.close();
+        }
+    }
+}
+
+void startRecording() {
+    startTime = getCurrentTime();
+    writer.open();
+}`,
+
             'core:variable': `// Variable Component
 @In value = ${node.properties.value || 0};
 @Out output;
