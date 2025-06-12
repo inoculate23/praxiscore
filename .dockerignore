@@ -1,0 +1,27 @@
+# Build artifacts (except the final runtime)
+*/target/
+!praxiscore-bin/target/praxiscore/
+*.jar
+*.zip
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+
+# Test outputs
+testsuite/
+
+# Local development files
+praxis-live/
