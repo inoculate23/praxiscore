@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PraxisLIVE Web - Visual Programming IDE</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1e1e1e;
+            color: #ffffff;
+            overflow: hidden;
+        }
+        
+        .ide-container {
+            display: grid;
+            grid-template-areas: 
+                "toolbar toolbar toolbar"
+                "palette canvas properties"
+                "console console console";
+            grid-template-rows: 50px 1fr 200px;
+            grid-template-columns: 250px 1fr 250px;
+            height: 100vh;
+        }
+        
+        .toolbar {
+            grid-area: toolbar;
+            background: #2d2d30;
+            border-bottom: 1px solid #3e3e42;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            gap: 15px;
+        }
+        
+        .toolbar h1 {
+            font-size: 18px;
+            color: #ffffff;
+        }
+        
+        .toolbar-buttons {
+            display: flex;
+            gap: 10px;
+            margin-left: auto;
+        }
+        
+        .btn {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+        
+        .btn:hover {
+            background: #1177bb;
+        }
+        
+        .btn.success {
+            background: #107c10;
+        }
+        
+        .btn.success:hover {
+            background: #0e6e0e;
+        }
+        
+        .btn.danger {
+            background: #d13438;
+        }
+        
+        .btn.danger:hover {
+            background: #b92b2b;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #d13438;
+            margin-right: 5px;
+        }
+        
+        .status-indicator.connected {
+            background: #107c10;
+        }
+        
+        .component-palette {
+            grid-area: palette;
+            background: #252526;
+            border-right: 1px solid #3e3e42;
+            overflow-y: auto;
+        }
+        
+        .palette-header {
+            background: #2d2d30;
+            padding: 10px;
+            border-bottom: 1px solid #3e3e42;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .component-category {
+            margin-bottom: 5px;
+        }
+        
+        .category-header {
+            background: #2d2d30;
+            padding: 8px 10px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            border-bottom: 1px solid #3e3e42;
+        }
+        
+        .category-header:hover {
+            background: #3e3e42;
+        }
+        
+        .component-list {
+            background: #252526;
+        }
+        
+        .component-item {
+            padding: 8px 15px;
+            cursor: grab;
+            font-size: 11px;
+            border-bottom: 1px solid #2d2d30;
+            transition: background 0.2s;
+        }
+        
+        .component-item:hover {
+            background: #2d2d30;
+        }
+        
+        .component-item:active {
+            cursor: grabbing;
+        }
+        
+        .canvas-container {
+            grid-area: canvas;
+            background: #1e1e1e;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .node-canvas {
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle, #3e3e42 1px, transparent 1px);
+            background-size: 20px 20px;
+            cursor: grab;
+        }
+        
+        .node-canvas:active {
+            cursor: grabbing;
+        }
+        
+        .node {
+            position: absolute;
+            background: #2d2d30;
+            border: 1px solid #3e3e42;
+            border-radius: 5px;
+            min-width: 120px;
+            cursor: move;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        
+        .node.selected {
+            border-color: #0e639c;
+            box-shadow: 0 0 0 2px rgba(14, 99, 156, 0.3);
+        }
+        
+        .node-header {
+            background: #3e3e42;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 4px 4px 0 0;
+            border-bottom: 1px solid #3e3e42;
+        }
+        
+        .node-body {
+            padding: 8px;
+        }
+        
+        .node-port {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #666;
+            border: 2px solid #3e3e42;
+            position: absolute;
+            cursor: crosshair;
+        }
+        
+        .node-port.input {
+            left: -6px;
+            background: #4a9eff;
+        }
+        
+        .node-port.output {
+            right: -6px;
+            background: #ff6b4a;
+        }
+        
+        .node-port:hover {
+            transform: scale(1.2);
+        }
+        
+        .connection {
+            position: absolute;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .connection path {
+            stroke: #4a9eff;
+            stroke-width: 2;
+            fill: none;
+        }
+        
+        .properties-panel {
+            grid-area: properties;
+            background: #252526;
+            border-left: 1px solid #3e3e42;
+            overflow-y: auto;
+        }
+        
+        .properties-header {
+            background: #2d2d30;
+            padding: 10px;
+            border-bottom: 1px solid #3e3e42;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .property-group {
+            margin-bottom: 15px;
+        }
+        
+        .property-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #cccccc;
+        }
+        
+        .property-input {
+            width: 100%;
+            background: #3c3c3c;
+            border: 1px solid #3e3e42;
+            color: white;
+            padding: 6px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .property-input:focus {
+            outline: none;
+            border-color: #0e639c;
+        }
+        
+        .console-panel {
+            grid-area: console;
+            background: #0c0c0c;
+            border-top: 1px solid #3e3e42;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .console-header {
+            background: #2d2d30;
+            padding: 8px 15px;
+            border-bottom: 1px solid #3e3e42;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .console-content {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+        }
+        
+        .console-line {
+            margin: 2px 0;
+            white-space: pre-wrap;
+        }
+        
+        .console-line.info {
+            color: #4a9eff;
+        }
+        
+        .console-line.success {
+            color: #107c10;
+        }
+        
+        .console-line.error {
+            color: #d13438;
+        }
+        
+        .console-line.warning {
+            color: #ffcc02;
+        }
+        
+        .context-menu {
+            position: absolute;
+            background: #2d2d30;
+            border: 1px solid #3e3e42;
+            border-radius: 3px;
+            padding: 5px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            z-index: 1000;
+            min-width: 150px;
+            display: none;
+        }
+        
+        .context-menu-item {
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .context-menu-item:hover {
+            background: #3e3e42;
+        }
+        
+        .mini-map {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 150px;
+            height: 100px;
+            background: rgba(45, 45, 48, 0.9);
+            border: 1px solid #3e3e42;
+            border-radius: 3px;
+        }
+        
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(30, 30, 30, 0.8);
+            z-index: 2000;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #3e3e42;
+            border-top: 4px solid #0e639c;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="ide-container">
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div class="status-indicator" id="connectionStatus"></div>
+            <h1>🎛️ PraxisLIVE Web</h1>
+            <div class="toolbar-buttons">
+                <button class="btn" onclick="newProject()">New Project</button>
+                <button class="btn" onclick="openProject()">Open</button>
+                <button class="btn" onclick="saveProject()">Save</button>
+                <button class="btn success" onclick="runProject()" id="runBtn">▶ Run</button>
+                <button class="btn danger" onclick="stopProject()" id="stopBtn">⏹ Stop</button>
+                <button class="btn" onclick="connectToPraxisCore()">Connect</button>
+            </div>
+        </div>
+
+        <!-- Component Palette -->
+        <div class="component-palette">
+            <div class="palette-header">Components</div>
+            
+            <div class="component-category">
+                <div class="category-header" onclick="toggleCategory('audio')">🎵 Audio</div>
+                <div class="component-list" id="audio-components">
+                    <div class="component-item" draggable="true" data-type="audio:oscillator">Oscillator</div>
+                    <div class="component-item" draggable="true" data-type="audio:filter">Filter</div>
+                    <div class="component-item" draggable="true" data-type="audio:reverb">Reverb</div>
+                    <div class="component-item" draggable="true" data-type="audio:mixer">Mixer</div>
+                    <div class="component-item" draggable="true" data-type="audio:recorder">Recorder</div>
+                </div>
+            </div>
+
+            <div class="component-category">
+                <div class="category-header" onclick="toggleCategory('video')">🎬 Video</div>
+                <div class="component-list" id="video-components" style="display: none;">
+                    <div class="component-item" draggable="true" data-type="video:player">Player</div>
+                    <div class="component-item" draggable="true" data-type="video:camera">Camera</div>
+                    <div class="component-item" draggable="true" data-type="video:effect">Effect</div>
+                    <div class="component-item" draggable="true" data-type="video:composite">Composite</div>
+                </div>
+            </div>
+
+            <div class="component-category">
+                <div class="category-header" onclick="toggleCategory('core')">⚙️ Core</div>
+                <div class="component-list" id="core-components" style="display: none;">
+                    <div class="component-item" draggable="true" data-type="core:variable">Variable</div>
+                    <div class="component-item" draggable="true" data-type="core:clock">Clock</div>
+                    <div class="component-item" draggable="true" data-type="core:trigger">Trigger</div>
+                    <div class="component-item" draggable="true" data-type="core:router">Router</div>
+                </div>
+            </div>
+
+            <div class="component-category">
+                <div class="category-header" onclick="toggleCategory('data')">📊 Data</div>
+                <div class="component-list" id="data-components" style="display: none;">
+                    <div class="component-item" draggable="true" data-type="data:list">List</div>
+                    <div class="component-item" draggable="true" data-type="data:array">Array</div>
+                    <div class="component-item" draggable="true" data-type="data:math">Math</div>
+                    <div class="component-item" draggable="true" data-type="data:string">String</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Canvas -->
+        <div class="canvas-container">
+            <div class="node-canvas" id="nodeCanvas"></div>
+            <div class="mini-map"></div>
+            <svg id="connectionLayer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+                            refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#4a9eff" />
+                    </marker>
+                </defs>
+            </svg>
+        </div>
+
+        <!-- Properties Panel -->
+        <div class="properties-panel">
+            <div class="properties-header">Properties</div>
+            <div id="propertiesContent" style="padding: 15px;">
+                <div class="property-group">
+                    <em style="color: #666; font-size: 12px;">Select a node to edit properties</em>
+                </div>
+            </div>
+        </div>
+
+        <!-- Console -->
+        <div class="console-panel">
+            <div class="console-header">Console & Logs</div>
+            <div class="console-content" id="consoleContent">
+                <div class="console-line info">[INFO] PraxisLIVE Web IDE initialized</div>
+                <div class="console-line info">[INFO] Ready for visual programming</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" onclick="addNode()">Add Component</div>
+        <div class="context-menu-item" onclick="deleteNode()">Delete</div>
+        <div class="context-menu-item" onclick="duplicateNode()">Duplicate</div>
+        <div class="context-menu-item" onclick="editCode()">Edit Code</div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading" id="loadingOverlay" style="display: none;">
+        <div class="spinner"></div>
+    </div>
+
+    <script src="praxis-live-web.js"></script>
+</body>
+</html>

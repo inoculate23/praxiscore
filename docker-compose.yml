@@ -33,6 +33,24 @@ services:
       - PRAXISCORE_HOST=praxiscore
       - PRAXISCORE_PORT=8080
 
+  praxis-live-web:
+    build:
+      context: ./praxis-live-web
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      - praxiscore
+    networks:
+      - praxis-network
+    container_name: praxiscore-praxis-live-web
+    restart: unless-stopped
+    volumes:
+      - ./praxis-live-web/projects:/app/projects
+    environment:
+      - PRAXISCORE_HOST=praxiscore
+      - PRAXISCORE_PORT=8080
+
 networks:
   praxis-network:
     driver: bridge
