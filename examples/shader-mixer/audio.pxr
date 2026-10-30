@@ -1,0 +1,11 @@
+@ /audio root:audio {
+  @ ./input audio:input { .channels 1 }
+  @ ./meter audio:analysis:level
+  @ ./mute audio:gain { .level 0 }
+  @ ./output audio:output { .channels 2 }
+  @ ./send core:routing:send { .address /video/control.energy }
+  ~ ./input!out-1 ./meter!in
+  ~ ./meter!out ./mute!in
+  ~ ./mute!out ./output!in-1
+  ~ ./meter!level ./send!in
+}

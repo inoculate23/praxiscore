@@ -1,0 +1,75 @@
+// Equidistant 180-degree fulldome: center = zenith, circumference = horizon.
+@P(1) @Type.Number(min=0, max=1) double energy;
+@P(2) @Type.Number(min=0.1, max=30, def=8) double sensitivity;
+@P(3) @Type.Number(min=0, max=3, def=0.35) double speed;
+@P(4) @Type.Number(min=0, max=1, def=0.8) double brightness;
+
+double envelope;
+double previousTime;
+double phase;
+
+@Override
+public void draw() {
+    double now = millis() / 1000.0;
+    double dt = previousTime == 0 ? 1.0 / 60 : Math.max(0, Math.min(0.1, now - previousTime));
+    previousTime = now;
+    double target = Math.min(1, Math.max(0, energy * sensitivity));
+    // Fast attack, slow release; continuous motion when the input is silent.
+    envelope += (target - envelope) * (1 - Math.exp(-dt / (target > envelope ? 0.045 : 0.3)));
+    phase += dt * speed * (0.5 + envelope * 1.5);
+    background(0);
+    double radius = Math.min(width, height) * 0.485;
+    double cx = width * 0.5;
+    double cy = height * 0.5;
+    double e = envelope;
+    noFill();
+    strokeWeight(Math.max(1, width / 900.0));
+    // Latitude rings and azimuth spokes form a hemispherical wave field.
+    for (int ring = 1; ring <= 18; ring++) {
+        double theta = ring / 18.0 * Math.PI / 2;
+        stroke(28 * brightness, (100 + 100 * e) * brightness,
+               240 * brightness, 100 + 100 * e);
+        beginShape();
+        for (int n = 0; n <= 160; n++) {
+            double az = n / 160.0 * Math.PI * 2;
+            double wave = Math.sin(az * 6 + theta * 9 - phase * 3) * 0.027 * e * Math.sin(theta * 2);
+            double rr = (theta / (Math.PI / 2) + wave) * radius;
+            vertex(cx + Math.cos(az + phase * 0.12) * rr,
+                   cy + Math.sin(az + phase * 0.12) * rr);
+        }
+        endShape();
+    }
+    for (int spoke = 0; spoke < 48; spoke++) {
+        double az = spoke / 48.0 * Math.PI * 2;
+        stroke((110 + 100 * e) * brightness, 45 * brightness, 220 * brightness, 135);
+        beginShape();
+        for (int j = 0; j <= 42; j++) {
+            double f = j / 42.0;
+            double bend = 0.08 * Math.sin(f * 9 - phase * 2) * e * Math.sin(f * Math.PI);
+            double a = az + phase * 0.12 + bend;
+            vertex(cx + Math.cos(a) * f * radius, cy + Math.sin(a) * f * radius);
+        }
+        endShape();
+    }
+    // Deterministic stars slide along geodesic directions; size scales with resolution.
+    noStroke();
+    for (int i = 0; i < 220; i++) {
+        double az = i * 2.399963229728653 + phase * 0.16;
+        double f = ((i * 0.61803398875 + phase * (0.02 + (i % 5) * 0.005)) % 1);
+        // Uniform sampling on a hemisphere, followed by equidistant fisheye projection.
+        double theta = Math.acos(1 - f);
+        double rr = theta / (Math.PI / 2) * radius;
+        double x = cx + Math.cos(az) * rr;
+        double y = cy + Math.sin(az) * rr;
+        double size = (1.2 + (i % 4) * 0.5 + e * 3) * width / 1024.0;
+        fill(50 * brightness, 150 * brightness, 255 * brightness, 30 + e * 30);
+        ellipse(x - size * 3, y - size * 3, size * 6, size * 6);
+        fill((160 + 90 * e) * brightness, (200 - 90 * e) * brightness, 255 * brightness, 220);
+        ellipse(x - size / 2, y - size / 2, size, size);
+    }
+    // Stable perimeter keeps the horizon defined without crossing the circular mask.
+    noFill();
+    stroke(55 * brightness, 180 * brightness, 255 * brightness, 180);
+    strokeWeight(Math.max(1, width / 700.0));
+    ellipse(cx - radius, cy - radius, radius * 2, radius * 2);
+}

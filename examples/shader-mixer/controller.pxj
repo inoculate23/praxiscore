@@ -1,0 +1,27 @@
+@P(1) @Type.Number(min=0, max=1) double energy;
+@P(2) @Type.Number(min=0, max=1, def=0.5) double crossfade;
+@P(3) @Type.Number(min=0, max=1, def=0.25) double audioMix;
+@P(4) @Type.Number(min=0.1, max=30, def=8) double sensitivity;
+@P(5) @Type.Number(min=0, max=1, def=0.75) double brightness;
+@P(6) boolean blackout;
+@P(7) boolean demo;
+double envelope;
+double previousTime;
+
+@Override
+public void update() {
+    double now = millis() / 1000.0;
+    double dt = previousTime == 0 ? 1.0 / 30 : Math.max(0, Math.min(0.1, now - previousTime));
+    previousTime = now;
+    double input = demo ? 0.08 * Math.pow(0.5 + 0.5 * Math.sin(now * Math.PI * 4), 4) : energy;
+    double target = Math.min(1, Math.max(0, input * sensitivity));
+    envelope += (target - envelope) * (1 - Math.exp(-dt / (target > envelope ? 0.04 : 0.3)));
+    tell(ControlAddress.of("/video/deck-a.energy"), envelope);
+    tell(ControlAddress.of("/video/deck-b.energy"), envelope);
+    double gain = blackout ? 0 : brightness;
+    tell(ControlAddress.of("/video/deck-a.brightness"), gain);
+    tell(ControlAddress.of("/video/deck-b.brightness"), gain);
+    // Signed modulation swings around the chosen center; zero depth is exact manual mixing.
+    double mix = Math.max(0, Math.min(1, crossfade + audioMix * (envelope * 2 - 1)));
+    tell(ControlAddress.of("/video/mix.mix"), mix);
+}

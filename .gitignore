@@ -19,3 +19,18 @@ nb-configuration.xml
 nbactions.xml
 
 .idea
+
+# Local third-party shader packs and generated copies containing their source.
+/examples/shader-mixer/shaders/magic/
+/examples/shader-mixer/shaders/RGBlaserflower.frag
+/examples/shader-mixer/shaders/PBwormhole.frag
+/examples/shader-mixer/player/library.js
+/examples/shader-mixer/player/shaders.js
+/examples/shader-mixer/video.pxr
+/examples/shader-mixer/shader-import-report.json
+/examples/shader-mixer/shader-gpu-report.json
+/examples/shader-mixer/preview-*.png
+# User-supplied media remains local.
+/examples/shader-mixer/player/audio/
+
+.DS_Store

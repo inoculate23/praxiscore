@@ -159,6 +159,10 @@ public class Launcher {
                 description = {"Allow for controlling the hub via PCL commands over the command line."})
         private boolean interactive;
 
+        @CommandLine.Option(names = "--machine",
+                description = "Use base64 line framed script I/O for automation (implies --interactive).")
+        private boolean machine;
+
         @CommandLine.Option(names = "--child",
                 description = {"Configure the process to run as a child process. "
                     + "Implies --port auto unless specified.",
@@ -249,7 +253,7 @@ public class Launcher {
                 script = null;
             }
 
-            if (!requireServer && !interactive && script == null) {
+            if (!requireServer && !interactive && !machine && script == null) {
                 if (showEnv) {
                     return 0;
                 } else {
@@ -291,8 +295,8 @@ public class Launcher {
                 if (script != null) {
                     hubBuilder.addExtension(new ScriptRunner(List.of(script)));
                 }
-                if (interactive) {
-                    var terminalIO = createTerminalIO();
+                if (interactive || machine) {
+                    var terminalIO = machine ? new MachineTerminalIO() : createTerminalIO();
                     hubBuilder.addExtension(terminalIO);
                 }
 

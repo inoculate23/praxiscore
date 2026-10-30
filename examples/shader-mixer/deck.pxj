@@ -1,0 +1,41 @@
+@P(1) @Type.String(allowed={"LaserFlower", "Wormhole", "Aurora", "Stars"}, def="LaserFlower") String preset;
+@P(2) @Type.Number(min=0, max=1) double energy;
+@P(3) @Type.Number(min=0, max=3, def=0.4) double speed;
+@P(4) @Type.Number(min=0, max=1, def=0.75) double brightness;
+@P(5) @Type.Number(min=0.3, max=3, def=1) double zoom;
+@P(6) boolean freeze;
+@P(7) @Type.Number(min=0, max=1, def=0.55) double reaction;
+
+PShader[] programs = new PShader[6];
+double clock;
+double previousTime;
+final String[] sources = SHADER_SOURCES;
+
+@Override
+public void setup() {
+    programs = new PShader[6];
+    previousTime = 0;
+    noStroke();
+}
+
+@Override
+public void draw() {
+    double now = millis() / 1000.0;
+    double dt = previousTime == 0 ? 1.0 / 60 : Math.max(0, Math.min(0.1, now - previousTime));
+    previousTime = now;
+    if (!freeze) clock += dt * speed * (1 + energy * reaction * 2);
+    int idx = "PrismTunnel".equals(preset) ? 4 : "LiquidLattice".equals(preset) ? 5 : "Wormhole".equals(preset) ? 1 : "Aurora".equals(preset) ? 2 : "Stars".equals(preset) ? 3 : 0;
+    if (programs[idx] == null) programs[idx] = createShader(DEFAULT_VERTEX_SHADER, sources[idx]);
+    PShader program = programs[idx];
+    program.set("time", clock);
+    program.set("resolution", (double)width, (double)height);
+    // The pack uses mouse as a free artistic control; audio moves it.
+    program.set("mouse", 0.5 + energy * 0.3, 0.5);
+    program.set("uEnergy", energy);
+    program.set("uBrightness", brightness);
+    program.set("uZoom", zoom);
+    program.set("uReaction", reaction);
+    shader(program);
+    rect(0, 0, width, height);
+    resetShader();
+}
